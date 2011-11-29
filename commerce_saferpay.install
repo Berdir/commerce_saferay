@@ -1,0 +1,130 @@
+<?php
+
+/**
+ * @file
+ * Handles installing and uninstalling Saferpay.
+ */
+
+/**
+ * Implementation of hook_requirements().
+ */
+function commerce_saferpay_requirements($phase) {
+  $t = get_t();
+
+  $has_curl = function_exists('curl_init');
+  // Saferpay requires cURL to interact with webservice.
+  $requirements['commerce_saferpay_curl'] = array(
+    'title' => $t('cURL'),
+    'value' => $has_curl ? $t('Enabled') : $t('Not found'),
+  );
+  if (!$has_curl) {
+    $requirements['commerce_saferpay_curl']['severity'] = REQUIREMENT_ERROR;
+    $requirements['commerce_saferpay_curl']['description'] = $t("Saferpay requires the PHP <a href='!curl_url'>cURL</a> library.", array('!curl_url' => 'http://php.net/manual/en/curl.setup.php'));
+  }
+
+  return $requirements;
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function commerce_saferpay_schema() {
+  $schema = array();
+
+  $schema['commerce_payment_saferpay_tx'] = array(
+    'description' => t('Logs Saferpay Transactions.'),
+    'fields' => array(
+      'order_id' => array(
+        'description' => t('The order ID.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'txn_id' => array(
+        'description' => t('The transaction ID from Saferpay.'),
+        'type' => 'varchar',
+        'length' => 96,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'mc_gross' => array(
+        'description' => t('The payment amount from Saferpay.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'mc_currency' => array(
+        'description' => t('The currency from Saferpay.'),
+        'type' => 'varchar',
+        'length' => 8,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'provider_id' => array(
+        'description' => t('The provider ID from Saferpay.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+      ),
+      'provider_name' => array(
+        'description' => t('The provider name from Saferpay.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'default' => 0,
+      ),
+      'completed' => array(
+        'description' => t('Is the transaction completed?'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'complete_result' => array(
+        'description' => t('The complete result from Saferpay.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'default' => '',
+      ),
+      'received' => array(
+        'description' => t('The transaction receipt timestamp.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'modified' => array(
+        'description' => t('The transaction receipt last modification timestamp.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'order_id' => array('order_id'),
+    ),
+  );
+  return $schema;
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function commerce_saferpay_uninstall() {
+  variable_del('commerce_saferpay_account_id');
+  variable_del('commerce_saferpay_order_identifier');
+  variable_del('commerce_saferpay_autocomplete');
+  variable_del('commerce_saferpay_cvc');
+  variable_del('commerce_saferpay_ccname');
+  variable_del('commerce_saferpay_menu_color');
+  variable_del('commerce_saferpay_menu_font_color');
+  variable_del('commerce_saferpay_body_color');
+  variable_del('commerce_saferpay_body_font_color');
+  variable_del('commerce_saferpay_head_color');
+  variable_del('commerce_saferpay_head_font_color');
+  variable_del('commerce_saferpay_head_line_color');
+  variable_del('commerce_saferpay_link_color');
+  variable_del('commerce_saferpay_debug');
+}
