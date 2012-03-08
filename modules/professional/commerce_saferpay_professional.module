@@ -1,0 +1,172 @@
+<?php
+
+/**
+ * @file
+ * Process payments using Saferpay Payment Page.
+ *
+ * For API reference see http://www.saferpay.com/help
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function commerce_saferpay_professional_menu() {
+  $items['commerce/saferpay/%commerce_order/%'] = array(
+    'title' => 'adyen response',
+    'page callback' => 'commerce_saferpay_professional_handle_response',
+    'page arguments' => array(2),
+    'access callback' => 'commerce_saferpay_professional_redirect_access',
+    'access arguments' => array(2, 3),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Acess callback for payment redirect.
+ */
+function commerce_saferpay_professional_redirect_access($order, $key) {
+  return user_access('access checkout') && !empty($_GET['DATA']) && $key == $order->data['payment_redirect_key'];
+}
+
+/**
+ * Implementation of hook_commerce_payment_method_info().
+ */
+function commerce_saferpay_professional_commerce_payment_method_info() {
+
+  $payment_methods = array();
+
+  $payment_methods['commerce_saferpay_professional'] = array(
+    'method_id' => 'commerce_saferpay_professional',
+    'title' => t('Saferpay Professional'),
+    'description' => t('Handels payments (almost) without redirects to Saferpay. (Hidden Mode)'),
+    'active' => TRUE,
+    'terminal' => FALSE,
+    'offsite' => TRUE,
+    'offsite_autoredirect' => FALSE,
+  );
+
+  return $payment_methods;
+}
+
+
+/**
+ * Payment method callback; return the settings form for a payment method.
+ *
+ * @param $settings
+ *   An array of the current settings.
+ * @return
+ *   A form snippet.
+ */
+function commerce_saferpay_professional_settings_form($settings = NULL) {
+  return commerce_saferpay_settings_form($settings);
+}
+
+/**
+ * Payment method callback; generation callback for the payment redirect form.
+ *
+ * Returns form elements that should be submitted to the redirected payment
+ * service; because of the array merge that happens upon return, the service’s
+ * URL that should receive the POST variables should be set in the #action
+ * property of the returned form array.
+ */
+function commerce_saferpay_professional_redirect_form($form, &$form_state, $order, $payment_method) {
+  if (empty($payment_method['settings']['account_id'])) {
+    drupal_set_message(t('Saferpay HI is not configured for use. No Account ID has been specified.'), 'error');
+    return array();
+  }
+
+  $url = _commerce_saferpay_professional_initpay($order, $payment_method['settings'], $payment_method['instance_id']);
+  if (empty($url)) {
+    drupal_set_message(t('Failed to contact Saferpay.'), 'error');
+    return array();
+  }
+
+  $form['#method'] = 'post';
+  $form['#action'] = $url;
+
+  $form['sfpCardNumber'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Card Number'),
+      '#size' => 16,
+      '#maxlength' => 16,
+      '#required' => TRUE,
+  );
+
+  $form['sfpCardExpiryMonth'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Expiration Month'),
+      '#size' => 2,
+      '#maxlength' => 2,
+      '#required' => TRUE,
+  );
+
+  $form['sfpCardExpiryYear'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Expiration Year'),
+      '#size' => 2,
+      '#maxlength' => 2,
+      '#required' => TRUE,
+  );
+
+  $form['CardHolder'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Card Holder Name'),
+      '#size' => 20,
+      '#maxlength' => 20,
+      '#required' => TRUE,
+  );
+
+  $form['CVC'] = array(
+      '#type' => 'textfield',
+      '#title' => t('CVC'),
+      '#size' => 4,
+      '#maxlength' => 4,
+      '#required' => TRUE,
+  );
+
+  $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Proceed to Saferpay'),
+      '#weight' => 50,
+  );
+
+  return $form;
+
+}
+
+function commerce_saferpay_professional_handle_response($order) {
+  dpm($_GET, 'GET');
+
+  $data = simplexml_load_string($_GET['DATA']);
+  dpm((array)$data);
+
+  $confirmed = commerce_saferpay_confirm_validate($_GET['DATA'], $_GET['SIGNATURE']);
+  dpm($confirmed, 'confirmed');
+
+  $result = _commerce_saferpay_confirm_result();
+  dpm($result);
+
+  if ($data['RESULT'] !== 0) {
+
+  }
+
+
+  return 'OK';
+}
+
+
+function _commerce_saferpay_professional_initpay($order, $settings, $instance_id) {
+  $data = array();
+
+  // @todo: Check this:
+  // * Für die Verwendung von CARDREFID="new" muss bei Saferpay zunächst ein numerischer Startwert für den
+  // Account hinterlegt werden. Kontaktieren Sie hierfür integration@saferpay.com.
+  $data['CARDREFID'] = 'new';
+
+  $data['FAILLINK'] = url('commerce/saferpay/' . $order->order_id . '/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
+  $data['SUCCESSLINK'] = $data['FAILLINK'];
+  $data['BACKLINK'] = $data['FAILLINK'];
+
+  return commerce_saferpay_initpay($order, $settings, $instance_id, $data);
+}

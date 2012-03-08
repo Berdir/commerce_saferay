@@ -24,3 +24,11 @@ function commerce_saferpay_requirements($phase) {
 
   return $requirements;
 }
+
+/**
+ * Enable the payment page module for existing installations.
+ */
+function commerce_saferpay_update_7000() {
+  module_enable(array('commerce_saferpay_pp'));
+  drupal_set_message(t('The Saferpay payment method has been split into two modules for Payment Page and Professional mode. You will need to update your payment method configuration.'), 'warning');
+}
