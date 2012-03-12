@@ -26,7 +26,9 @@ function commerce_saferpay_professional_menu() {
  * Acess callback for payment redirect.
  */
 function commerce_saferpay_professional_redirect_access($order, $key) {
-  return user_access('access checkout') && !empty($_GET['DATA']) && $key == $order->data['payment_redirect_key'];
+  if (user_access('access checkout') && !empty($_GET['DATA']) && $key == $order->data['payment_redirect_key']) {
+    return commerce_saferpay_confirm_validate($_GET['DATA'], $_GET['SIGNATURE']);
+  }
 }
 
 /**
@@ -72,7 +74,7 @@ function commerce_saferpay_professional_settings_form($settings = NULL) {
  */
 function commerce_saferpay_professional_redirect_form($form, &$form_state, $order, $payment_method) {
   if (empty($payment_method['settings']['account_id'])) {
-    drupal_set_message(t('Saferpay HI is not configured for use. No Account ID has been specified.'), 'error');
+    drupal_set_message(t('Saferpay Professional is not configured for use. No Account ID has been specified.'), 'error');
     return array();
   }
 
@@ -127,7 +129,7 @@ function commerce_saferpay_professional_redirect_form($form, &$form_state, $orde
 
   $form['submit'] = array(
       '#type' => 'submit',
-      '#value' => t('Proceed to Saferpay'),
+      '#value' => t('Submit'),
       '#weight' => 50,
   );
 
@@ -135,22 +137,18 @@ function commerce_saferpay_professional_redirect_form($form, &$form_state, $orde
 
 }
 
+/**
+ * Page callback for processing the Saferpay SCD response.
+ * @param type $order
+ * @return string
+ */
 function commerce_saferpay_professional_handle_response($order) {
-  dpm($_GET, 'GET');
-
   $data = simplexml_load_string($_GET['DATA']);
-  dpm((array)$data);
-
-  $confirmed = commerce_saferpay_confirm_validate($_GET['DATA'], $_GET['SIGNATURE']);
-  dpm($confirmed, 'confirmed');
-
-  $result = _commerce_saferpay_confirm_result();
-  dpm($result);
-
   if ($data['RESULT'] !== 0) {
-
+    // @todo Add message.
+    drupal_goto('checkout/' . $order->order_id . '/payment');
   }
-
+  dpm((array)$data);
 
   return 'OK';
 }
