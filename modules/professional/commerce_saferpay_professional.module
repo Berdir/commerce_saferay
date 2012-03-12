@@ -18,6 +18,7 @@ function commerce_saferpay_professional_menu() {
     'access callback' => 'commerce_saferpay_professional_redirect_access',
     'access arguments' => array(2, 3),
     'type' => MENU_CALLBACK,
+    'file' => 'commerce_saferpay_professional.pages.inc',
   );
   return $items;
 }
@@ -137,22 +138,6 @@ function commerce_saferpay_professional_redirect_form($form, &$form_state, $orde
 
 }
 
-/**
- * Page callback for processing the Saferpay SCD response.
- *
- * @param $order
- *   The commerce order object.
- */
-function commerce_saferpay_professional_scd_handle_response($order) {
-  $data = simplexml_load_string($_GET['DATA']);
-  if ($data['RESULT'] !== 0) {
-    // @todo Add message.
-    drupal_goto('checkout/' . $order->order_id . '/payment');
-  }
-  dpm((array)$data);
-
-  return 'OK';
-}
 
 function _commerce_saferpay_professional_initpay($order, $settings, $instance_id) {
   $data = array();
