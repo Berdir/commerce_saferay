@@ -11,9 +11,9 @@
  * Implements hook_menu().
  */
 function commerce_saferpay_professional_menu() {
-  $items['commerce/saferpay/%commerce_order/%'] = array(
+  $items['commerce/saferpay/scd/%commerce_order/%'] = array(
     'title' => 'adyen response',
-    'page callback' => 'commerce_saferpay_professional_handle_response',
+    'page callback' => 'commerce_saferpay_professional_scd_handle_response',
     'page arguments' => array(2),
     'access callback' => 'commerce_saferpay_professional_redirect_access',
     'access arguments' => array(2, 3),
@@ -139,10 +139,11 @@ function commerce_saferpay_professional_redirect_form($form, &$form_state, $orde
 
 /**
  * Page callback for processing the Saferpay SCD response.
- * @param type $order
- * @return string
+ *
+ * @param $order
+ *   The commerce order object.
  */
-function commerce_saferpay_professional_handle_response($order) {
+function commerce_saferpay_professional_scd_handle_response($order) {
   $data = simplexml_load_string($_GET['DATA']);
   if ($data['RESULT'] !== 0) {
     // @todo Add message.
@@ -153,7 +154,6 @@ function commerce_saferpay_professional_handle_response($order) {
   return 'OK';
 }
 
-
 function _commerce_saferpay_professional_initpay($order, $settings, $instance_id) {
   $data = array();
 
@@ -162,7 +162,7 @@ function _commerce_saferpay_professional_initpay($order, $settings, $instance_id
   // Account hinterlegt werden. Kontaktieren Sie hierfür integration@saferpay.com.
   $data['CARDREFID'] = 'new';
 
-  $data['FAILLINK'] = url('commerce/saferpay/' . $order->order_id . '/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
+  $data['FAILLINK'] = url('commerce/saferpay/scd/' . $order->order_id . '/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
   $data['SUCCESSLINK'] = $data['FAILLINK'];
   $data['BACKLINK'] = $data['FAILLINK'];
 
