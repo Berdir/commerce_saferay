@@ -73,7 +73,18 @@ function commerce_saferpay_professional_commerce_payment_method_info() {
  *   A form snippet.
  */
 function commerce_saferpay_professional_settings_form($settings = NULL) {
-  return commerce_saferpay_settings_form($settings);
+  $form = commerce_saferpay_settings_form($settings);
+
+  $settings += array(
+    'require_liablityshift' => FALSE,
+  );
+
+  $form['require_liablityshift'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Require confirmed liability shift for the payments'),
+    '#description' => t('If checked, only payments from credit cards with support for 3-D Secure are accepted.'),
+    '#default_value' => $settings['require_liablityshift'],
+  );
 }
 
 /**
