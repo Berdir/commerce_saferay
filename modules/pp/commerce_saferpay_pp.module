@@ -140,22 +140,10 @@ function commerce_saferpay_pp_process_data($order, $payment_method, $data, $resu
   $tx_amount = $data_xml['AMOUNT'];
   $tx_currency = $data_xml['CURRENCY'];
 
+  $result_output = _commerce_saferpay_confirm_result();
   parse_str(drupal_substr($result, 3), $result_output);
 
-  // Look for an existing transaction.
-  $query = new EntityFieldQuery();
-  $result = $query
-    ->entityCondition('entity_type', 'commerce_payment_transaction')
-    ->propertyCondition('remote_id', $result_output['ID'])
-    ->execute();
-
-  if (!empty($result['commerce_payment_transaction'])) {
-    $transaction = commerce_payment_transaction_load(key($result['commerce_payment_transaction']));
-  }
-  else {
-    // Create a new payment transaction for the order.
-    $transaction = commerce_payment_transaction_new('saferpay', $order->order_id);
-  }
+  $transaction = commerce_saferpay_get_transaction($order, $payment_method['method_id']);
 
   $transaction->remote_id = $result_output['ID'];
   $transaction->amount = $tx_amount;
@@ -178,7 +166,7 @@ function commerce_saferpay_pp_process_data($order, $payment_method, $data, $resu
       $finalize['spPassword'] = $payment_method['settings']['password'];
     }
     $url = url('https://www.saferpay.com/hosting/PayComplete.asp', array('external' => TRUE, 'query' => $finalize));
-    $result = _commerce_saferpay_pp_process_url($url);
+    $result = commerce_saferpay_process_url($url);
     if (drupal_substr($result, 0, 2) == 'OK') {
       $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
       $transaction->message = t('Successfully completed the payment.');
