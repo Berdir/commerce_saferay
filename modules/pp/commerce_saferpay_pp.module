@@ -8,7 +8,7 @@
  */
 
 /**
- * Implementation of hook_menu().
+ * Implements hook_menu().
  */
 function commerce_saferpay_pp_menu() {
   // Callback functions for cip payment.
@@ -25,7 +25,7 @@ function commerce_saferpay_pp_menu() {
 }
 
 /**
- * Implementation of hook_commerce_payment_method_info().
+ * Implements hook_commerce_payment_method_info().
  */
 function commerce_saferpay_pp_commerce_payment_method_info() {
 

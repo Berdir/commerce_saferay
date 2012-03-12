@@ -1,5 +1,4 @@
 <?php
-// $Id: commerce_saferpay.pages.inc,v 1.2 2010/09/30 18:21:23 sarhugo Exp $
 
 /**
  * @file

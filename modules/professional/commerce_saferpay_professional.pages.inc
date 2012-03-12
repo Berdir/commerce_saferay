@@ -22,7 +22,7 @@ function commerce_saferpay_professional_scd_handle_response($order) {
   // Store the card ref id in the user session.
   // @todo Maybe store in the order?
   // @todo Add commerce_cardonfile integration.
-  $_SESSION['commerce_saferpay_professional']['card_ref_id'] = (string)$data['CARDREFID'];
+  $_SESSION['commerce_saferpay_professional']['card_ref_id'] = (string) $data['CARDREFID'];
 
   $payment_method = commerce_payment_method_instance_load($order->data['payment_method']);
   $mpi_response = commerce_saferpay_professional_verify_enrollment($order, $data, $payment_method['settings']);
@@ -34,7 +34,7 @@ function commerce_saferpay_professional_scd_handle_response($order) {
     }
     else {
       // Check if there is no liability shift and if such payments are allowed.
-      if (((int)$mpi_response['RESULT'] != 0 || $mpi_response['ECI'] == COMMERCE_SAFERPAY_ECI_NO_LIABILITYSHIFT) && !empty($payment_method['settings']['require_liablityshift'])) {
+      if (((int) $mpi_response['RESULT'] != 0 || $mpi_response['ECI'] == COMMERCE_SAFERPAY_ECI_NO_LIABILITYSHIFT) && !empty($payment_method['settings']['require_liablityshift'])) {
         drupal_set_message(t('Payments from credit cards without 3-D Secure support are not accepted.'), 'error');
         drupal_goto(commerce_checkout_order_uri($order));
       }

@@ -45,7 +45,7 @@ function commerce_saferpay_professional_redirect_access($order, $key) {
 }
 
 /**
- * Implementation of hook_commerce_payment_method_info().
+ * Implements hook_commerce_payment_method_info().
  */
 function commerce_saferpay_professional_commerce_payment_method_info() {
 
@@ -152,7 +152,7 @@ function commerce_saferpay_professional_redirect_form($form, &$form_state, $orde
 
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Submit'),
+    '#value' => t('Proceed with payment'),
     '#weight' => 50,
   );
 

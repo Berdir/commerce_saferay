@@ -80,13 +80,11 @@ function commerce_saferpay_initpay($order, $settings, $instance_id, $data = arra
     $data['spPassword'] = $settings['password'];
   }
 
-
   $url = url('https://www.saferpay.com/hosting/CreatePayInit.asp', array('external' => TRUE, 'query' => $data));
 
   $return = commerce_saferpay_process_url($url);
   if (strpos($return, 'ERROR') !== FALSE) {
-    drupal_set_message($return, 'error');
-    drupal_set_message(t('An error occurred during payment.'), 'error');
+    drupal_set_message(t('An error occurred during payment: @error.', array('@error' => $error)), 'error');
     // Prevent endless redirection loop.
     drupal_goto();
   }

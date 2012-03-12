@@ -6,7 +6,7 @@
  */
 
 /**
- * Implementation of hook_requirements().
+ * Implements hook_requirements().
  */
 function commerce_saferpay_requirements($phase) {
   $t = get_t();
