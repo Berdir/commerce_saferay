@@ -77,14 +77,27 @@ function commerce_saferpay_professional_settings_form($settings = NULL) {
 
   $settings += array(
     'require_liablityshift' => FALSE,
+    'use_mpi' => TRUE,
   );
 
+  $form['use_mpi'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Use Saferpay Merchant Plug-in'),
+    '#description' => t('If checked, the payment process integrates with Saferpay Merchant Plug-In to support 3-D Secure and therefore liability shift.'),
+    '#default_value' => $settings['use_mpi'],
+  );
   $form['require_liablityshift'] = array(
     '#type' => 'checkbox',
     '#title' => t('Require confirmed liability shift for the payments'),
     '#description' => t('If checked, only payments from credit cards with support for 3-D Secure are accepted.'),
     '#default_value' => $settings['require_liablityshift'],
+    '#states' => array(
+      'visible' => array(
+        ':input[name="parameter[payment_method][settings][payment_method][settings][use_mpi]"]' => array('checked' => TRUE),
+      ),
+    ),
   );
+  return $form;
 }
 
 /**
@@ -244,11 +257,8 @@ function commerce_saferpay_professional_verify_enrollment($order, $scd_response,
  * Authorizes a payment.
  *
  * @param $order
- *   The order object.
- * @param $card_ref_id
- *   The cardrefid issued by Saferpay Secure Card Data.
- * @param $mpi_session_id
- *   The session id given by Saferpay MPI.
+ *   The order object. Needs to have commerce_saferpay_card_ref_id defined in
+ *   $order->data and optionally commerce_saferpay_mpi_session_id.
  * @param $settings
  *   The payment method settings.
  * @param $method_id
@@ -259,7 +269,7 @@ function commerce_saferpay_professional_verify_enrollment($order, $scd_response,
  *   otherwise. The error can be fetched from
  *   commerce_saferpay_professional_error() in that case.
  */
-function commerce_saferpay_professional_authorize_payment($order, $card_ref_id, $mpi_session_id, $settings, $method_id) {
+function commerce_saferpay_professional_authorize_payment($order, $settings, $method_id) {
   $data = array();
 
   // Generic arguments.
@@ -269,14 +279,17 @@ function commerce_saferpay_professional_authorize_payment($order, $card_ref_id, 
     $data['spPassword'] = $settings['password'];
   }
 
-  $data['CARDREFID'] = $card_ref_id;
-  $data['MPI_SESSIONID'] = $mpi_session_id;
+  $data['CARDREFID'] = $order->data['commerce_saferpay_card_ref_id'];
+  // Set the MPI_SESSIONID if existing.
+  if (!empty($order->data['commerce_saferpay_mpi_session_id'])) {
+    $data['MPI_SESSIONID'] = $order->data['commerce_saferpay_mpi_session_id'];
+  }
 
   // Order data.
   $total = field_get_items('commerce_order', $order, 'commerce_order_total');
   $data['AMOUNT'] = $total[0]['amount'];
   $data['CURRENCY'] = $total[0]['currency_code'];
-  $data['ORDERID'] = $order->order_id;
+  $data['ORDERID'] = $order->order_number;
 
   $url = url('https://www.saferpay.com/hosting/execute.asp', array('external' => TRUE, 'query' => $data));
 
@@ -370,15 +383,12 @@ function commerce_saferpay_professional_settle_payment($transaction, $settings) 
  * the user, do not use this if there is no user interface involved.x
  *
  * @param $order
- *   The order object.
- * @param $card_ref_id
- *   The cardrefid issued by Saferpay Secure Card Data.
- * @param $mpi_session_id
- *   The session id given by Saferpay MPI.
+ *   The order object. Needs to have commerce_saferpay_card_ref_id defined in
+ *   $order->data and optionally commerce_saferpay_mpi_session_id.
  */
-function commerce_saferpay_professional_pay_order($order, $card_ref_id, $mpi_session_id) {
+function commerce_saferpay_professional_pay_order($order) {
   $payment_method = commerce_payment_method_instance_load($order->data['payment_method']);
-  $transaction = commerce_saferpay_professional_authorize_payment($order, $card_ref_id, $mpi_session_id, $payment_method['settings'], $payment_method['method_id']);
+  $transaction = commerce_saferpay_professional_authorize_payment($order, $payment_method['settings'], $payment_method['method_id']);
   if ($transaction !== FALSE) {
     $complete_response = commerce_saferpay_professional_settle_payment($transaction, $payment_method['settings']);
     if ($complete_response === TRUE) {

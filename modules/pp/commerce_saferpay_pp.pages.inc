@@ -21,6 +21,6 @@ function commerce_saferpay_ipn($payment_method, $order) {
     return FALSE;
   }
 
-  $result = _commerce_saferpay_confirm_result();
+  $result = commerce_saferpay_confirm_result();
   commerce_saferpay_process_data($order, $payment_method, $data_xml, $result);
 }

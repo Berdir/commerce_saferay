@@ -140,7 +140,7 @@ function commerce_saferpay_pp_process_data($order, $payment_method, $data, $resu
   $tx_amount = $data_xml['AMOUNT'];
   $tx_currency = $data_xml['CURRENCY'];
 
-  $result_output = _commerce_saferpay_confirm_result();
+  $result_output = commerce_saferpay_confirm_result();
   parse_str(drupal_substr($result, 3), $result_output);
 
   $transaction = commerce_saferpay_get_transaction($order, $payment_method['method_id']);

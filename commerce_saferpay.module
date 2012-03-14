@@ -123,11 +123,11 @@ function commerce_saferpay_confirm_validate($data, $signature) {
   if (drupal_substr($result, 0, 3) != 'OK:') {
     return FALSE;
   }
-  _commerce_saferpay_confirm_result($result);
+  commerce_saferpay_confirm_result($result);
   return TRUE;
 }
 
-function _commerce_saferpay_confirm_result($result = NULL) {
+function commerce_saferpay_confirm_result($result = NULL) {
   $static = &drupal_static(__FUNCTION__);
   if ($result) {
     $static = $result;
