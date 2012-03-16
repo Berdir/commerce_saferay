@@ -44,7 +44,8 @@ function commerce_saferpay_business_scd_handle_response($order) {
           drupal_goto(commerce_checkout_order_uri($order));
         }
         // Authorize and optionally settle the order immediatly.
-        commerce_saferpay_business_pay_order($order, $_SESSION['commerce_saferpay_business']['card_ref_id'], $mpi_response['MPI_SESSIONID']);
+        $order->data['commerce_saferpay_mpi_session_id'] = (string)$data['MPI_SESSIONID'];
+        commerce_saferpay_business_pay_order($order);
       }
     }
     else {
