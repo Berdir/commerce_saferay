@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Page callbacks for Saferpay Professional payment gateway.
+ * Page callbacks for Saferpay Business payment gateway.
  */
 
 /**
@@ -11,7 +11,7 @@
  * @param $order
  *   The commerce order object.
  */
-function commerce_saferpay_professional_scd_handle_response($order) {
+function commerce_saferpay_business_scd_handle_response($order) {
   $data = simplexml_load_string($_GET['DATA']);
   if ($data['RESULT'] != 0) {
     // @todo Add message.
@@ -27,10 +27,10 @@ function commerce_saferpay_professional_scd_handle_response($order) {
   $payment_method = commerce_payment_method_instance_load($order->data['payment_method']);
   if (empty($payment_method['settings']['use_mpi'])) {
     // Authorize and optionally settle the order immediatly.
-    commerce_saferpay_professional_pay_order($order);
+    commerce_saferpay_business_pay_order($order);
   }
   else {
-    $mpi_response = commerce_saferpay_professional_verify_enrollment($order, $data, $payment_method['settings']);
+    $mpi_response = commerce_saferpay_business_verify_enrollment($order, $data, $payment_method['settings']);
     if ($mpi_response !== FALSE) {
       // Redirect to 3-D secure, if necessary.
       if ((int)$mpi_response['RESULT'] == 0 && (int)$mpi_response['ECI'] == COMMERCE_SAFERPAY_ECI_3D_AUTHENTICATION) {
@@ -44,7 +44,7 @@ function commerce_saferpay_professional_scd_handle_response($order) {
           drupal_goto(commerce_checkout_order_uri($order));
         }
         // Authorize and optionally settle the order immediatly.
-        commerce_saferpay_professional_pay_order($order, $_SESSION['commerce_saferpay_professional']['card_ref_id'], $mpi_response['MPI_SESSIONID']);
+        commerce_saferpay_business_pay_order($order, $_SESSION['commerce_saferpay_business']['card_ref_id'], $mpi_response['MPI_SESSIONID']);
       }
     }
     else {
@@ -60,7 +60,7 @@ function commerce_saferpay_professional_scd_handle_response($order) {
  * @param $order
  *   The commerce order object.
  */
-function commerce_saferpay_professional_mpi_handle_response($order) {
+function commerce_saferpay_business_mpi_handle_response($order) {
   $data = simplexml_load_string($_GET['DATA']);
   if ($data['RESULT'] != 0) {
     drupal_set_message(t('Payment failed: @message', array('@message' => $data['MESSAGE'])));
@@ -68,5 +68,5 @@ function commerce_saferpay_professional_mpi_handle_response($order) {
   }
   // Authorize and optionally settle the order.
   $order->data['commerce_saferpay_mpi_session_id'] = (string)$data['MPI_SESSIONID'];
-  commerce_saferpay_professional_pay_order($order);
+  commerce_saferpay_business_pay_order($order);
 }

@@ -13,58 +13,58 @@
 function commerce_saferpay_settings_form($settings = NULL) {
 
   $settings += array(
-      'account_id' => '99867-94913159',
-      'password' => 'XAjc3Kna',
-      'order_identifier' => '[commerce-order:order-id]-[commerce-order:created]',
-      'autocomplete' => TRUE,
-      'order_description' => 'Order [commerce-order:order-id] at [site:name]',
+    'account_id' => '99867-94913159',
+    'password' => 'XAjc3Kna',
+    'order_identifier' => '[commerce-order:order-id]-[commerce-order:created]',
+    'autocomplete' => TRUE,
+    'order_description' => 'Order [commerce-order:order-id] at [site:name]',
   );
 
   $form['account_id'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Account ID'),
-      '#default_value' => $settings['account_id'],
+    '#type' => 'textfield',
+    '#title' => t('Account ID'),
+    '#default_value' => $settings['account_id'],
   );
 
   $form['password'] = array(
-      '#type' => 'textfield',
-      '#title' => t('spPassword'),
-      '#description' => t('Only required for the test account.'),
-      '#default_value' => $settings['password'],
+    '#type' => 'textfield',
+    '#title' => t('spPassword'),
+    '#description' => t('Only required for the test account.'),
+    '#default_value' => $settings['password'],
   );
   $form['order_identifier'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Order identifier'),
-      '#description' => t('The order identifier sent to Saferpay Gateway - check Replacement patterns'),
-      '#default_value' => $settings['order_identifier'],
+    '#type' => 'textfield',
+    '#title' => t('Order identifier'),
+    '#description' => t('The order identifier sent to Saferpay Gateway - check Replacement patterns'),
+    '#default_value' => $settings['order_identifier'],
   );
   $form['order_description'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Order description'),
-      '#description' => t('The order description displayed on the payment page -  check Replacement patterns'),
-      '#default_value' => $settings['order_description'],
+    '#type' => 'textfield',
+    '#title' => t('Order description'),
+    '#description' => t('The order description displayed on the payment page -  check Replacement patterns'),
+    '#default_value' => $settings['order_description'],
   );
   $form['view']['token_help'] = array(
-      '#title' => t('Replacement patterns'),
-      '#type' => 'fieldset',
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
+    '#title' => t('Replacement patterns'),
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
   );
   $form['view']['token_help']['help'] = array(
-      '#theme' => 'token_tree',
-      '#token_types' => array('commerce-order'),
+    '#theme' => 'token_tree',
+    '#token_types' => array('commerce-order'),
   );
   $form['autocomplete'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Auto Finalize payment by capture of transaction.'),
-      '#default_value' => $settings['autocomplete'],
+    '#type' => 'checkbox',
+    '#title' => t('Auto Finalize payment by capture of transaction.'),
+    '#default_value' => $settings['autocomplete'],
   );
 
   return $form;
 }
 
 /**
- * Interacts with the saferpay webservice to get the url to make the transaction.
+ * Returns the initial payment transaction URL to redirect or post to.
  *
  * @param $order
  *   The order

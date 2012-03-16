@@ -13,24 +13,24 @@ define('COMMERCE_SAFERPAY_ECI_3D_NO_AUTHENTICATION', 2);
 /**
  * Implements hook_menu().
  */
-function commerce_saferpay_professional_menu() {
+function commerce_saferpay_business_menu() {
   $items['commerce/saferpay/scd/%commerce_order/%'] = array(
     'title' => 'Saferpay SCD Response',
-    'page callback' => 'commerce_saferpay_professional_scd_handle_response',
+    'page callback' => 'commerce_saferpay_business_scd_handle_response',
     'page arguments' => array(3),
-    'access callback' => 'commerce_saferpay_professional_redirect_access',
+    'access callback' => 'commerce_saferpay_business_redirect_access',
     'access arguments' => array(3, 4),
     'type' => MENU_CALLBACK,
-    'file' => 'commerce_saferpay_professional.pages.inc',
+    'file' => 'commerce_saferpay_business.pages.inc',
   );
   $items['commerce/saferpay/mpi/%commerce_order/%'] = array(
     'title' => 'Saferpay MPI Response',
-    'page callback' => 'commerce_saferpay_professional_mpi_handle_response',
+    'page callback' => 'commerce_saferpay_business_mpi_handle_response',
     'page arguments' => array(3),
-    'access callback' => 'commerce_saferpay_professional_redirect_access',
+    'access callback' => 'commerce_saferpay_business_redirect_access',
     'access arguments' => array(3, 4),
     'type' => MENU_CALLBACK,
-    'file' => 'commerce_saferpay_professional.pages.inc',
+    'file' => 'commerce_saferpay_business.pages.inc',
   );
   return $items;
 }
@@ -38,7 +38,7 @@ function commerce_saferpay_professional_menu() {
 /**
  * Acess callback for payment redirect.
  */
-function commerce_saferpay_professional_redirect_access($order, $key) {
+function commerce_saferpay_business_redirect_access($order, $key) {
   if (user_access('access checkout') && !empty($_GET['DATA']) && $key == $order->data['payment_redirect_key']) {
     return commerce_saferpay_confirm_validate($_GET['DATA'], $_GET['SIGNATURE']);
   }
@@ -47,13 +47,13 @@ function commerce_saferpay_professional_redirect_access($order, $key) {
 /**
  * Implements hook_commerce_payment_method_info().
  */
-function commerce_saferpay_professional_commerce_payment_method_info() {
+function commerce_saferpay_business_commerce_payment_method_info() {
 
   $payment_methods = array();
 
-  $payment_methods['commerce_saferpay_professional'] = array(
-    'method_id' => 'commerce_saferpay_professional',
-    'title' => t('Saferpay Professional'),
+  $payment_methods['commerce_saferpay_business'] = array(
+    'method_id' => 'commerce_saferpay_business',
+    'title' => t('Saferpay business'),
     'description' => t('Handels payments (almost) without redirects to Saferpay. (Hidden Mode)'),
     'active' => TRUE,
     'terminal' => FALSE,
@@ -72,7 +72,7 @@ function commerce_saferpay_professional_commerce_payment_method_info() {
  * @return
  *   A form snippet.
  */
-function commerce_saferpay_professional_settings_form($settings = NULL) {
+function commerce_saferpay_business_settings_form($settings = NULL) {
   $form = commerce_saferpay_settings_form($settings);
 
   $settings += array(
@@ -108,13 +108,13 @@ function commerce_saferpay_professional_settings_form($settings = NULL) {
  * URL that should receive the POST variables should be set in the #action
  * property of the returned form array.
  */
-function commerce_saferpay_professional_redirect_form($form, &$form_state, $order, $payment_method) {
+function commerce_saferpay_business_redirect_form($form, &$form_state, $order, $payment_method) {
   if (empty($payment_method['settings']['account_id'])) {
-    drupal_set_message(t('Saferpay Professional is not configured for use. No Account ID has been specified.'), 'error');
+    drupal_set_message(t('Saferpay business is not configured for use. No Account ID has been specified.'), 'error');
     return array();
   }
 
-  $url = _commerce_saferpay_professional_initpay($order, $payment_method['settings'], $payment_method['instance_id']);
+  $url = _commerce_saferpay_business_initpay($order, $payment_method['settings'], $payment_method['instance_id']);
   if (empty($url)) {
     drupal_set_message(t('Failed to contact Saferpay.'), 'error');
     return array();
@@ -172,7 +172,7 @@ function commerce_saferpay_professional_redirect_form($form, &$form_state, $orde
   return $form;
 }
 
-function _commerce_saferpay_professional_initpay($order, $settings, $instance_id) {
+function _commerce_saferpay_business_initpay($order, $settings, $instance_id) {
   $data = array();
 
   // @todo: Check this:
@@ -196,7 +196,7 @@ function _commerce_saferpay_professional_initpay($order, $settings, $instance_id
  * @return
  *   Returns the currently stored error message.
  */
-function commerce_saferpay_professional_error($new_error = NULL) {
+function commerce_saferpay_business_error($new_error = NULL) {
   $error = &drupal_static(__FUNCTION__);
   if ($new_error) {
     $error = $new_error;
@@ -218,9 +218,9 @@ function commerce_saferpay_professional_error($new_error = NULL) {
  * @return SimpleXMLElement
  *   The response object if the verify enrollment call successed, FALSE
  *   otherwise. The error can be fetched from
- *   commerce_saferpay_professional_error() in that case.
+ *   commerce_saferpay_business_error() in that case.
  */
-function commerce_saferpay_professional_verify_enrollment($order, $scd_response, $settings) {
+function commerce_saferpay_business_verify_enrollment($order, $scd_response, $settings) {
   $data = array();
 
   // Generic arguments.
@@ -243,12 +243,12 @@ function commerce_saferpay_professional_verify_enrollment($order, $scd_response,
   $url = url('https://www.saferpay.com/hosting/VerifyEnrollment.asp', array('external' => TRUE, 'query' => $data));
 
   $return = commerce_saferpay_process_url($url);
-  list($code, $data) = explode(':', $return, 2);
+  list($code, $response) = explode(':', $return, 2);
   if ($code == 'OK') {
-    return simplexml_load_string($data);
+    return simplexml_load_string($response);
   }
   else {
-    commerce_saferpay_professional_error($data);
+    commerce_saferpay_business_error($response);
   }
   return FALSE;
 }
@@ -267,9 +267,9 @@ function commerce_saferpay_professional_verify_enrollment($order, $scd_response,
  * @return
  *   The transaction object if the authorization succeeded, FALSE
  *   otherwise. The error can be fetched from
- *   commerce_saferpay_professional_error() in that case.
+ *   commerce_saferpay_business_error() in that case.
  */
-function commerce_saferpay_professional_authorize_payment($order, $settings, $method_id) {
+function commerce_saferpay_business_authorize_payment($order, $settings, $method_id) {
   $data = array();
 
   // Generic arguments.
@@ -313,12 +313,12 @@ function commerce_saferpay_professional_authorize_payment($order, $settings, $me
       return $transaction;
     }
     else {
-      commerce_saferpay_professional_error($idp['AUTHMESSAGE']);
+      commerce_saferpay_business_error($idp['AUTHMESSAGE']);
       return FALSE;
     }
   }
   else {
-    commerce_saferpay_professional_error($data);
+    commerce_saferpay_business_error($idp_string);
   }
   return FALSE;
 }
@@ -333,9 +333,9 @@ function commerce_saferpay_professional_authorize_payment($order, $settings, $me
  *
  * @return SimpleXMLElement
  *   TRUE if the settlement succeeded, FALSE otherwise. The error can be fetched
- *   from commerce_saferpay_professional_error() in that case.
+ *   from commerce_saferpay_business_error() in that case.
  */
-function commerce_saferpay_professional_settle_payment($transaction, $settings) {
+function commerce_saferpay_business_settle_payment($transaction, $settings) {
   $data = array();
 
   // Generic arguments.
@@ -350,28 +350,28 @@ function commerce_saferpay_professional_settle_payment($transaction, $settings) 
   $url = url('https://www.saferpay.com/hosting/paycompletev2.asp', array('external' => TRUE, 'query' => $data));
 
   $return = commerce_saferpay_process_url($url);
-  list($code, $data) = explode(':', $return, 2);
+  list($code, $response) = explode(':', $return, 2);
   if ($code == 'OK') {
-    $response = simplexml_load_string($data);
+    $response = simplexml_load_string($response);
     if ((int) $response['RESULT'] == 0) {
       $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
       $transaction->message = t('Successfully completed the payment.');
       $transaction->remote_message = (string) $response['MESSAGE'];
-      $transaction->payload[REQUEST_TIME][] = $data;
+      $transaction->payload[REQUEST_TIME][] = $response;
       commerce_payment_transaction_save($transaction);
       return TRUE;
     }
     else {
-      commerce_saferpay_professional_error($response['MESSAGE'] . $response['AUTHMESSAGE']);
+      commerce_saferpay_business_error($response['MESSAGE'] . $response['AUTHMESSAGE']);
       $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
       $transaction->message = t('Failed to complete payment.');
       $transaction->remote_message = (string) $response['MESSAGE'];
-      $transaction->payload[REQUEST_TIME][] = $data;
+      $transaction->payload[REQUEST_TIME][] = $response;
       commerce_payment_transaction_save($transaction);
     }
   }
   else {
-    commerce_saferpay_professional_error($data);
+    commerce_saferpay_business_error($response);
   }
   return FALSE;
 }
@@ -386,11 +386,11 @@ function commerce_saferpay_professional_settle_payment($transaction, $settings) 
  *   The order object. Needs to have commerce_saferpay_card_ref_id defined in
  *   $order->data and optionally commerce_saferpay_mpi_session_id.
  */
-function commerce_saferpay_professional_pay_order($order) {
+function commerce_saferpay_business_pay_order($order) {
   $payment_method = commerce_payment_method_instance_load($order->data['payment_method']);
-  $transaction = commerce_saferpay_professional_authorize_payment($order, $payment_method['settings'], $payment_method['method_id']);
+  $transaction = commerce_saferpay_business_authorize_payment($order, $payment_method['settings'], $payment_method['method_id']);
   if ($transaction !== FALSE) {
-    $complete_response = commerce_saferpay_professional_settle_payment($transaction, $payment_method['settings']);
+    $complete_response = commerce_saferpay_business_settle_payment($transaction, $payment_method['settings']);
     if ($complete_response === TRUE) {
       // Send the customer on to the next checkout page.
       commerce_payment_redirect_pane_next_page($order);
@@ -398,12 +398,12 @@ function commerce_saferpay_professional_pay_order($order) {
     }
     else {
       // Display error and redirect back.
-      drupal_set_message(t('An error occured while settling the payment: @error.', array('@error' => commerce_saferpay_professional_error())), 'error');
+      drupal_set_message(t('An error occured while settling the payment: @error.', array('@error' => commerce_saferpay_business_error())), 'error');
       drupal_goto(commerce_checkout_order_uri($order));
     }
   }
   else {
-    drupal_set_message(t('An error occured while processing the payment: @error.', array('@error' => commerce_saferpay_professional_error())), 'error');
+    drupal_set_message(t('An error occured while processing the payment: @error.', array('@error' => commerce_saferpay_business_error())), 'error');
     drupal_goto(commerce_checkout_order_uri($order));
   }
 }
