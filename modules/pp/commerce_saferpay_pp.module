@@ -70,18 +70,15 @@ function commerce_saferpay_pp_settings_form($settings = NULL) {
 }
 
 /**
- * Implements CALLBACK_commerce_payment_method_redirect_form.
+ * Implements CALLBACK_commerce_payment_method_redirect_form().
  */
 function commerce_saferpay_pp_redirect_form($form, &$form_state, $order, $payment_method) {
   if (empty($payment_method['settings']['account_id'])) {
-    drupal_set_message(t('Saferpay is not configured for use. No Account ID has been specified.'), 'error');
-    drupal_goto();
-    return array();
+    drupal_set_message(t('Saferpay has not been configured. The test account is used. Visit the <a href="!url">payment settings</a> to change this.', array('!url' => url('admin/commerce/config/payment-methods'))), 'warning');
   }
 
-  $url = _commerce_saferpay_pp_initpay($order, $payment_method['settings'], $payment_method['instance_id']);
+  $url = commerce_saferpay_pp_initpay($order, $payment_method['settings']);
   if (empty($url)) {
-    drupal_set_message(t('Failed to contact Saferpay.'), 'error');
     return array();
   }
   $form['#action'] = $url;
@@ -95,6 +92,9 @@ function commerce_saferpay_pp_redirect_form($form, &$form_state, $order, $paymen
   return $form;
 }
 
+/**
+ * Implements CALLBACK_commerce_payment_method_redirect_form_validate().
+ */
 function commerce_saferpay_pp_redirect_form_validate($order, $payment_method) {
   if (empty($_GET['DATA'])) {
     return FALSE;
@@ -113,26 +113,20 @@ function commerce_saferpay_pp_redirect_form_submit($order, $payment_method) {
   if (empty($_GET['DATA'])) {
     return;
   }
-  $data = $_GET['DATA'];
-  while (drupal_strtolower(drupal_substr($data, 0, 14)) == '<idp msgtype=\\') {
-    $data = stripslashes($data);
-  }
-
-  $result = commerce_saferpay_confirm_result();
-
-  commerce_saferpay_pp_process_data($order, $payment_method, $data, $result);
+  commerce_saferpay_pp_process_data($order, $payment_method, $_GET['DATA']);
 }
 
 /**
  * Process the data sent by saferpay.
  *
- * @param type $order
- * @param type $payment_method
- * @param type $data
- * @param type $result
- * @return type
+ * @param $order
+ *   The order object.
+ * @param $payment_method
+ *   The payment method array.
+ * @param $data
+ *   The IDP XML data returned by Saferpay as a string.
  */
-function commerce_saferpay_pp_process_data($order, $payment_method, $data, $result) {
+function commerce_saferpay_pp_process_data($order, $payment_method, $data) {
   $data_xml = simplexml_load_string($data);
   if (!is_object($data_xml)) {
     return;
@@ -140,11 +134,10 @@ function commerce_saferpay_pp_process_data($order, $payment_method, $data, $resu
   $tx_amount = $data_xml['AMOUNT'];
   $tx_currency = $data_xml['CURRENCY'];
 
-  $result_output = commerce_saferpay_confirm_result();
+  $result = commerce_saferpay_confirm_result();
   parse_str(drupal_substr($result, 3), $result_output);
 
-  $transaction = commerce_saferpay_get_transaction($order, $payment_method['method_id']);
-
+  $transaction = commerce_saferpay_get_transaction($order, $result_output['ID'], $payment_method['method_id']);
   $transaction->remote_id = $result_output['ID'];
   $transaction->amount = $tx_amount;
   $transaction->currency_code = $tx_currency;
@@ -156,14 +149,18 @@ function commerce_saferpay_pp_process_data($order, $payment_method, $data, $resu
   // Save the transaction information.
   commerce_payment_transaction_save($transaction);
 
+  // @todo: Check if the PayComplete and PayCompletev2 (used by business) API's
+  // can be unified. Specifically, check if PayCompletev2 can be used here.
   if ($payment_method['settings']['autocomplete']) {
+    $settings = $payment_method['settings'];
+    $settings += commerce_saferpay_default_settings();
     $finalize = array(
-      'ACCOUNTID' => $payment_method['settings']['account_id'],
+      'ACCOUNTID' => $settings,
       'ID' => $result_output['ID'],
       'TOKEN' => $result_output['TOKEN'],
     );
-    if (!empty($payment_method['settings']['password'])) {
-      $finalize['spPassword'] = $payment_method['settings']['password'];
+    if (!empty($settings['password'])) {
+      $finalize['spPassword'] = $settings['password'];
     }
     $url = url('https://www.saferpay.com/hosting/PayComplete.asp', array('external' => TRUE, 'query' => $finalize));
     $result = commerce_saferpay_process_url($url);
@@ -182,7 +179,15 @@ function commerce_saferpay_pp_process_data($order, $payment_method, $data, $resu
   }
 }
 
-function _commerce_saferpay_pp_initpay($order, $settings, $instance_id) {
+/**
+ * Returns the redirect URL for the Saferpay Payment Page.
+ *
+ * @param $order
+ *   The order object.
+ * @param $settings
+ *   Array with the payment method setings.
+ */
+function commerce_saferpay_pp_initpay($order, $settings) {
   global $language;
 
   $order_identifier = token_replace($settings['order_identifier'], array('commerce-order' => $order));
@@ -199,12 +204,12 @@ function _commerce_saferpay_pp_initpay($order, $settings, $instance_id) {
   $data['ORDERID']  = htmlentities($order_identifier);
   $data['ALLOWCOLLECT'] = 'no';
   $data['DELIVERY'] = 'no';
-  $data['CCCVC'] = $settings['cvc'] ? 'yes' : 'no';
-  $data['CCNAME'] = $settings['ccname'] ? 'yes' : 'no';
+  $data['CCCVC'] = !empty($settings['cvc']) ? 'yes' : 'no';
+  $data['CCNAME'] = !empty($settings['ccname']) ? 'yes' : 'no';
 
   $data['FAILLINK'] = url('checkout/' . $order->order_id . '/payment/back/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
   $data['SUCCESSLINK'] = url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE));
   $data['BACKLINK'] = url('cart', array('absolute' => TRUE));
 
-  return commerce_saferpay_initpay($order, $settings, $instance_id, $data);
+  return commerce_saferpay_initpay($order, $settings, $data);
 }

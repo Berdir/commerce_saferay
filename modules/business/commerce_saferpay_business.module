@@ -110,13 +110,11 @@ function commerce_saferpay_business_settings_form($settings = NULL) {
  */
 function commerce_saferpay_business_redirect_form($form, &$form_state, $order, $payment_method) {
   if (empty($payment_method['settings']['account_id'])) {
-    drupal_set_message(t('Saferpay business is not configured for use. No Account ID has been specified.'), 'error');
-    return array();
+    drupal_set_message(t('Saferpay Business has not been configured. The test account is used. Visit the <a href="!url">payment settings</a> to change this.', array('!url' => url('admin/commerce/config/payment-methods'))), 'warning');
   }
 
-  $url = _commerce_saferpay_business_initpay($order, $payment_method['settings'], $payment_method['instance_id']);
+  $url = _commerce_saferpay_business_initpay($order, $payment_method['settings']);
   if (empty($url)) {
-    drupal_set_message(t('Failed to contact Saferpay.'), 'error');
     return array();
   }
 
@@ -172,7 +170,18 @@ function commerce_saferpay_business_redirect_form($form, &$form_state, $order, $
   return $form;
 }
 
-function _commerce_saferpay_business_initpay($order, $settings, $instance_id) {
+/**
+ * Returns the URL to post the credit card information to.
+ *
+ * @param $order
+ *   The order object.
+ * @param $settings
+ *   Array of payment method settings
+ *
+ * @return
+ *   The URL to point the credit card form action to, FALSE in case of an error.
+ */
+function _commerce_saferpay_business_initpay($order, $settings) {
   $data = array();
 
   // @todo: Check this:
@@ -184,7 +193,7 @@ function _commerce_saferpay_business_initpay($order, $settings, $instance_id) {
   $data['SUCCESSLINK'] = $data['FAILLINK'];
   $data['BACKLINK'] = $data['FAILLINK'];
 
-  return commerce_saferpay_initpay($order, $settings, $instance_id, $data);
+  return commerce_saferpay_initpay($order, $settings, $data);
 }
 
 /**
@@ -205,7 +214,7 @@ function commerce_saferpay_business_error($new_error = NULL) {
 }
 
 /**
- * Verifies 3-D secure enrollment.
+ * Verifies 3-D Secure enrollment.
  *
  * @param $order
  *   The order object.
@@ -222,6 +231,8 @@ function commerce_saferpay_business_error($new_error = NULL) {
  */
 function commerce_saferpay_business_verify_enrollment($order, $scd_response, $settings) {
   $data = array();
+
+  $settings += commerce_saferpay_default_settings();
 
   // Generic arguments.
   $data['MSGTYPE'] = 'VerifyEnrollment';
@@ -271,6 +282,8 @@ function commerce_saferpay_business_verify_enrollment($order, $scd_response, $se
  */
 function commerce_saferpay_business_authorize_payment($order, $settings, $method_id) {
   $data = array();
+
+  $settings += commerce_saferpay_default_settings();
 
   // Generic arguments.
   $data['MSGTYPE'] = 'VerifyEnrollment';
@@ -337,6 +350,8 @@ function commerce_saferpay_business_authorize_payment($order, $settings, $method
  */
 function commerce_saferpay_business_settle_payment($transaction, $settings) {
   $data = array();
+
+  $settings += commerce_saferpay_default_settings();
 
   // Generic arguments.
   $data['ACCOUNTID'] = $settings['account_id'];

@@ -1,24 +1,23 @@
 <?php
 
 /**
- * Common form elements.
+ * @file
+ * Module for for base Commerce Saferpay module.
+ */
+
+/**
+ * Common settings form elements.
  *
  * @param $settings
  *   An array of the current settings.
  * @return
  *   A form snippet.
  *
- * @see CALLBACK_commerce_payment_method_settings_form
+ * @see CALLBACK_commerce_payment_method_settings_form()
  */
 function commerce_saferpay_settings_form($settings = NULL) {
 
-  $settings += array(
-    'account_id' => '99867-94913159',
-    'password' => 'XAjc3Kna',
-    'order_identifier' => '[commerce-order:order-id]-[commerce-order:created]',
-    'autocomplete' => TRUE,
-    'order_description' => 'Order [commerce-order:order-id] at [site:name]',
-  );
+  $settings += commerce_saferpay_default_settings();
 
   $form['account_id'] = array(
     '#type' => 'textfield',
@@ -64,15 +63,39 @@ function commerce_saferpay_settings_form($settings = NULL) {
 }
 
 /**
+ * Returns the default settings for both payment methods.
+ *
+ * Defaults to the test account id and password.
+ */
+function commerce_saferpay_default_settings() {
+  return array(
+    'account_id' => '99867-94913159',
+    'password' => 'XAjc3Kna',
+    'order_identifier' => '[commerce-order:order-id]-[commerce-order:created]',
+    'autocomplete' => TRUE,
+    'order_description' => 'Order [commerce-order:order-id] at [site:name]',
+  );
+}
+
+/**
  * Returns the initial payment transaction URL to redirect or post to.
  *
+ * Deals with the arguments common to both payment methods.
+ *
  * @param $order
- *   The order
+ *   The order object.
+ * @param $settings
+ *   Array of payment method settings.
+ * @param $data
+ *   Array of additional arguments.
  *
  * @return
  *   URL to redirect the user to make payment.
  */
-function commerce_saferpay_initpay($order, $settings, $instance_id, $data = array()) {
+function commerce_saferpay_initpay($order, $settings, array $data = array()) {
+
+  // Apply default settings.
+  $settings += commerce_saferpay_default_settings();
 
   $data['ACCOUNTID'] = $settings['account_id'];
 
@@ -84,11 +107,9 @@ function commerce_saferpay_initpay($order, $settings, $instance_id, $data = arra
 
   $return = commerce_saferpay_process_url($url);
   if (strpos($return, 'ERROR') !== FALSE) {
-    drupal_set_message(t('An error occurred during payment: @error.', array('@error' => $error)), 'error');
-    // Prevent endless redirection loop.
-    drupal_goto();
+    drupal_set_message(t('An error occurred during payment: @error.', array('@error' => $return)), 'error');
+    return FALSE;
   }
-
   return $return;
 }
 
@@ -112,6 +133,19 @@ function commerce_saferpay_process_url($sUrl) {
   return $sReturn;
 }
 
+/**
+ * Confirms a response from Saferpay consisting of data and the signature.
+ *
+ * @param $data
+ *   Data string to be verified.
+ *
+ * @param $signature
+ *   The signature given by Saferpay for the data.
+ *
+ * @return
+ *   TRUE if the data is valid, FALSE otherwise. The actual response in case of
+ *   valid data can be received through commerce_saferpay_confirm_result().
+ */
 function commerce_saferpay_confirm_validate($data, $signature) {
   $verify = array(
     'DATA' => $data,
@@ -127,6 +161,12 @@ function commerce_saferpay_confirm_validate($data, $signature) {
   return TRUE;
 }
 
+/**
+ * Returns or sets the confirm response returned by Saferpay.
+ *
+ * @param $result
+ *   Overrides the currently stored result if given.
+ */
 function commerce_saferpay_confirm_result($result = NULL) {
   $static = &drupal_static(__FUNCTION__);
   if ($result) {
@@ -149,7 +189,7 @@ function commerce_saferpay_confirm_result($result = NULL) {
  *   A commerce_payment_transaction object.
  *
  */
-function commerce_saferpay_get_transaction($order, $id, $method_id = 'saferpay_pp')  {
+function commerce_saferpay_get_transaction($order, $id, $method_id)  {
   // Look for an existing transaction.
   $query = new EntityFieldQuery();
   $result = $query
